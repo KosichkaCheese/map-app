@@ -4,9 +4,11 @@ export default function RootLayout() {
   return <Stack
     screenOptions={{
       headerStyle: {
-        backgroundColor: '#968CA1', // ← цвет шапки
+        backgroundColor: '#B86C51',
       },
-      headerTintColor: '#DCCFDD', // ← цвет текста и иконок
-    }}
-  />
+      headerTintColor: '#DCA998',
+    }}>
+    <Stack.Screen name="index" options={{ headerShown: false }} />
+    <Stack.Screen name="marker/[id]" options={{ title: 'Marker' }} />
+  </Stack>
 }
