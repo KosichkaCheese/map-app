@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Map from "../components/Map";
 import Markers from "../components/Markers";
+import { markersList } from '../components/MarkersList';
 import { MarkerType } from "../types";
 
 export default function Index() {
-  const [markers, setMarkers] = useState<MarkerType[]>([]);
+  const [markers, setMarkers] = useState<MarkerType[]>(markersList.markers);
 
   const onLongMapPress = (event: any) => {
-    setMarkers([
+    const newList = [
       ...markers,
       {
         id: markers.length,
@@ -16,12 +17,14 @@ export default function Index() {
         longitude: event.nativeEvent.coordinate.longitude,
         images: [],
       },
-    ]);
+    ];
+    setMarkers(newList);
+    markersList.markers = newList;
   };
 
-  const updateMarker = (updatedMarker: MarkerType) => {
-    setMarkers((prev) => prev.map((marker) => (marker.id === updatedMarker.id ? updatedMarker : marker)));
-  }
+  // const updateMarker = (updatedMarker: MarkerType) => {
+  //   setMarkers((prev) => prev.map((marker) => (marker.id === updatedMarker.id ? updatedMarker : marker)));
+  // }
 
   return (
     <View style={styles.container}>

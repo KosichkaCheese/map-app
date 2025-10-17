@@ -1,25 +1,67 @@
 import * as ImagePicker from 'expo-image-picker';
 import { Stack, useLocalSearchParams } from 'expo-router';
-import React, { useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import ImageCarousel from '../../components/ImageCarousel';
+import { markersList } from '../../components/MarkersList';
+import { MarkerType, MarkersNavigationProps } from '../../types';
 
 
 export default function Details() {
-    const params = useLocalSearchParams();
-    const markerId = params.id;
-    const [images, setImages] = useState<string[]>([]);
+    const params = useLocalSearchParams<MarkersNavigationProps>();
+    const markerId = Number(params.id);
+
+    const [marker, setMarker] = useState<MarkerType | undefined>(
+        markersList.markers.find(m => m.id === markerId)
+    );
+
+    useEffect(() => {
+        if (marker) {
+            markersList.markers = markersList.markers.map(m =>
+                m.id === marker.id ? marker : m
+            );
+        }
+    }, [marker]);
+
+    if (!marker) return <Text style={{ padding: 20 }}>Маркер не найден</Text>;
 
     const addImage = async () => {
-        const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ['images'],
-            quality: 0.8,
-        });
-        if (!result.canceled && result.assets[0]) {
-            setImages([...images, result.assets[0].uri]);
+        try {
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (status !== 'granted') {
+                alert('Доступ к галерее запрещён. Разрешите доступ в настройках.');
+                return;
+            }
+
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ['images'],
+                quality: 0.8,
+            });
+            if (!result.canceled && result.assets[0]) {
+                setMarker({
+                    ...marker,
+                    images: [
+                        ...marker.images,
+                        {
+                            id: marker.images.length,
+                            uri: result.assets[0].uri
+                        }
+                    ],
+                });
+            }
+        } catch (error) {
+            console.error('Ошибка при выборе изображения:', error);
+            alert('Произошла ошибка при выборе изображения. Попробуйте ещё раз.');
         }
+
     };
 
-    const removeImage = (uri: string) => { setImages(images.filter((img) => img !== uri)); };
+    const removeImage = (id: number) => {
+        setMarker({
+            ...marker,
+            images: marker.images.filter(image => image.id !== id),
+        })
+    };
 
     return (
         <>
@@ -32,16 +74,7 @@ export default function Details() {
                         <Text style={styles.addbuttonText}>Добавить фото</Text>
                     </Pressable>
                 </View>
-                <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={styles.scroll}>
-                    {images.map((uri) => (
-                        <View key={uri} style={styles.imageWrapper}>
-                            <Image source={{ uri }} style={styles.image} />
-                            <Pressable style={styles.deleteButton} onPress={() => removeImage(uri)}>
-                                <Text style={styles.deleteText}>×</Text>
-                            </Pressable>
-                        </View>
-                    ))}
-                </ScrollView>
+                <ImageCarousel marker={marker} removeImage={removeImage} />
             </View>
         </>
     );
@@ -76,36 +109,8 @@ const styles = StyleSheet.create({
         marginBottom: 30,
     },
     addbuttonText: {
-        color: '#E99973',
+        color: '#FAB493',
         fontWeight: 'bold',
         fontSize: 16,
-    },
-    scroll: {
-
-    },
-    imageWrapper: {
-        position: 'relative',
-        marginRight: 10,
-    },
-    image: {
-        width: 350,
-        height: 470,
-        borderRadius: 10,
-    },
-    deleteButton: {
-        position: 'absolute',
-        top: 8,
-        right: 8,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        borderRadius: 12,
-        width: 24,
-        height: 24,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    deleteText: {
-        color: '#fff',
-        fontSize: 18,
-        lineHeight: 18,
     },
 });
