@@ -1,50 +1,33 @@
-# Welcome to your Expo app 👋
+# Map app
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
-
-## Get started
-
-1. Install dependencies
+## Запуск приложения
+1. склонируйте данный репозиторий и перейдите в него
+   ```bash
+   git clone https://github.com/KosichkaCheese/map-app.git
+   cd map-app
+   ```
+1. Убедитесь, что у вас установлен Node.js или установите его. Также установите зависимости
 
    ```bash
    npm install
    ```
 
-2. Start the app
+2. Запустите приложение
 
    ```bash
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+3. Для тестирования приложения используйте Expo Go:
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+[Expo Go](https://expo.dev/go)
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Использование
+Отсканировав Qr-код в приложении Expo Go Вы запустите приложение.   
+На главном экране Вы увидите карту с начальным регионом Пермь. С помощью долгого нажатия можно добавить маркер, нажав на маркер Вы перейдете на страницу его деталей. На странице деталей маркера можно увидеть его координаты и добавить изображения с помощью кнопки "Добавить". Для каждого маркера список изображений свой.
 
-## Get a fresh project
+## Принятые решения
+Сохранение данных маркеров пока не реализовано. Сейчас есть глобальный элемент - список маркеров, он импортируется и изменяется в нужных частях кода. Каждый объект маркера содержит поле со списком изображений.
 
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Известные проблемы
+В данный момент не реализовано сохранение данных маркера. Это значит, что при каждом перезапуске приложения все маркеры (и их изображения) сбросятся. 
