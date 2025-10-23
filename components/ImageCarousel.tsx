@@ -2,13 +2,13 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { CarouselProps } from '../types';
 
 
-export default function ImageCarousel({ marker, removeImage }: CarouselProps) {
+export default function ImageCarousel({ images, removeImage }: CarouselProps) {
     return (
         <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={styles.scroll}>
-            {marker.images.map((img) => (
+            {images.map((img) => (
                 <View key={img.id} style={styles.imageWrapper}>
                     <Image source={{ uri: img.uri }} style={styles.image} />
-                    <Pressable style={styles.deleteButton} onPress={() => removeImage(img.id)}>
+                    <Pressable style={styles.deleteButton} onPress={() => removeImage(img.id!)}>
                         <Text style={styles.deleteText}>×</Text>
                     </Pressable>
                 </View>

@@ -1,31 +1,38 @@
+import { useDatabase } from '@/contexts/databaseContext';
 import * as ImagePicker from 'expo-image-picker';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import ImageCarousel from '../../components/ImageCarousel';
-import { markersList } from '../../components/MarkersList';
-import { MarkerType, MarkersNavigationProps } from '../../types';
+import { Image, MarkersNavigationProps } from '../../types';
 
 
 export default function Details() {
+    const router = useRouter();
     const params = useLocalSearchParams<MarkersNavigationProps>();
     const markerId = Number(params.id);
+    const { getMarkers, getImages, addImage, deleteImage, deleteMarker } = useDatabase();
 
-    const [marker, setMarker] = useState<MarkerType | undefined>(
-        markersList.markers.find(m => m.id === markerId)
-    );
+    const [images, setImages] = useState<Image[]>([])
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        if (marker) {
-            markersList.markers = markersList.markers.map(m =>
-                m.id === marker.id ? marker : m
-            );
+        loadImages();
+    }, [markerId]);
+
+    const loadImages = async () => {
+        try {
+            setIsLoading(true);
+            await getImages(markerId).then(setImages);
+        } catch (error) {
+            console.error('Ошибка при загрузке маркера:', error);
+            Alert.alert('Ошибка', 'Ошибка при загрузке маркера', [{ text: 'OK' }]);
+        } finally {
+            setIsLoading(false);
         }
-    }, [marker]);
+    };
 
-    if (!marker) return <Text style={{ padding: 20 }}>Маркер не найден</Text>;
-
-    const addImage = async () => {
+    const addImageToMarker = async () => {
         try {
             const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
             if (status !== 'granted') {
@@ -38,29 +45,54 @@ export default function Details() {
                 quality: 0.8,
             });
             if (!result.canceled && result.assets[0]) {
-                setMarker({
-                    ...marker,
-                    images: [
-                        ...marker.images,
-                        {
-                            id: marker.images.length,
-                            uri: result.assets[0].uri
-                        }
-                    ],
-                });
+                const newImage = {
+                    uri: result.assets[0].uri,
+                    marker_id: markerId,
+                }
+                await addImage(newImage);
+                await loadImages();
             }
         } catch (error) {
             console.error('Ошибка при выборе изображения:', error);
-            alert('Произошла ошибка при выборе изображения. Попробуйте ещё раз.');
+            Alert.alert('Ошибка', 'Произошла ошибка при выборе изображения. Попробуйте ещё раз.', [{ text: 'OK' }]);
         }
 
     };
 
-    const removeImage = (id: number) => {
-        setMarker({
-            ...marker,
-            images: marker.images.filter(image => image.id !== id),
-        })
+    const removeImage = async (id: number) => {
+        try {
+            await deleteImage(id);
+            setImages(prevImages => prevImages.filter(image => image.id !== id));
+        } catch (error) {
+            console.error('Ошибка при удалении изображения:', error);
+            Alert.alert('Ошибка', 'Произошла ошибка при удалении изображения.', [{ text: 'OK' }]);
+        }
+    };
+
+    const handleDeleteMarker = async () => {
+        Alert.alert(
+            'Удаление маркера',
+            'Вы уверены, что хотите удалить этот маркер? Все связанные изображения также будут удалены.',
+            [
+                {
+                    text: 'Отмена',
+                    style: 'cancel',
+                },
+                {
+                    text: 'Удалить',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await deleteMarker(markerId);
+                            router.back();
+                        } catch (error) {
+                            console.error('Ошибка при удалении маркера:', error);
+                            Alert.alert('Ошибка', 'Не удалось удалить маркер', [{ text: 'OK' }]);
+                        }
+                    },
+                },
+            ]
+        );
     };
 
     return (
@@ -69,13 +101,22 @@ export default function Details() {
             <View style={styles.container}>
                 <Text style={styles.text}>Координаты: {'\n'}{params.latitude}, {params.longitude}</Text>
 
-                <View >
-                    <Pressable onPress={addImage} style={styles.addButton}>
+                <View style={styles.buttonContainer}>
+                    <Pressable onPress={addImageToMarker} style={styles.addButton}>
                         <Text style={styles.addbuttonText}>Добавить фото</Text>
                     </Pressable>
+                    <Pressable onPress={handleDeleteMarker} style={styles.deleteButton}>
+                        <Text style={styles.deleteButtonText}>Удалить маркер</Text>
+                    </Pressable>
                 </View>
-                <ImageCarousel marker={marker} removeImage={removeImage} />
+                <ImageCarousel images={images} removeImage={removeImage} />
             </View>
+            {isLoading && (
+                <View style={styles.loading}>
+                    <ActivityIndicator size="large" />
+                    <Text>Загрузка...</Text>
+                </View>
+            )}
         </>
     );
 }
@@ -101,6 +142,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         width: '100%',
+        gap: 40,
+        marginBottom: 30,
     },
     addButton: {
         backgroundColor: '#D27244',
@@ -110,6 +153,26 @@ const styles = StyleSheet.create({
     },
     addbuttonText: {
         color: '#FAB493',
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
+    loading: {
+        position: 'absolute',
+        top: 0, left: 0, right: 0, bottom: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.5)',
+    },
+    deleteButton: {
+        backgroundColor: '#d24444',
+        padding: 12,
+        borderRadius: 8,
+        flex: 1,
+        alignItems: 'center',
+        marginBottom: 30,
+    },
+    deleteButtonText: {
+        color: '#FFA5A5',
         fontWeight: 'bold',
         fontSize: 16,
     },

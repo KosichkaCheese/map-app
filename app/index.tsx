@@ -1,36 +1,63 @@
-import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useDatabase } from '@/contexts/databaseContext';
+import { addMarker } from '@/database/operations';
+import { useFocusEffect } from 'expo-router';
+import React, { useCallback, useState } from 'react';
+import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
 import Map from "../components/Map";
 import Markers from "../components/Markers";
-import { markersList } from '../components/MarkersList';
-import { MarkerType } from "../types";
+import { Marker } from "../types";
 
 export default function Index() {
-  const [markers, setMarkers] = useState<MarkerType[]>(markersList.markers);
+  const { getMarkers, isLoading, error } = useDatabase();
+  const [markers, setMarkers] = useState<Marker[]>([]);
+  const [isLoadingMarkers, setIsLoadingMarkers] = useState(true);
 
-  const onLongMapPress = (event: any) => {
-    const newList = [
-      ...markers,
-      {
-        id: markers.length,
-        latitude: event.nativeEvent.coordinate.latitude,
-        longitude: event.nativeEvent.coordinate.longitude,
-        images: [],
-      },
-    ];
-    setMarkers(newList);
-    markersList.markers = newList;
+  useFocusEffect(
+    useCallback(() => {
+      if (!isLoading) {
+        setIsLoadingMarkers(true);
+        loadMarkers();
+        setIsLoadingMarkers(false);
+      }
+    }, [isLoading]));
+
+  const loadMarkers = async () => {
+    setIsLoadingMarkers(true);
+    await getMarkers().then(setMarkers);
+    setIsLoadingMarkers(false);
   };
 
-  // const updateMarker = (updatedMarker: MarkerType) => {
-  //   setMarkers((prev) => prev.map((marker) => (marker.id === updatedMarker.id ? updatedMarker : marker)));
-  // }
+  const onLongMapPress = async (event: any) => {
+    const newMarker: Marker = {
+      latitude: event.nativeEvent.coordinate.latitude,
+      longitude: event.nativeEvent.coordinate.longitude,
+    };
+
+    try {
+      await addMarker(newMarker);
+      await loadMarkers();
+    } catch (error) {
+      console.error('Ошибка при добавлении маркера:', error);
+      Alert.alert('Ошибка', 'Ошибка при добавлении маркера', [{ text: 'OK' }]);
+    }
+  };
 
   return (
     <View style={styles.container}>
       <Map onLongPress={onLongMapPress}>
         <Markers markers={markers} />
       </Map>
+      {(isLoading || isLoadingMarkers) && (
+        <View style={styles.loading}>
+          <ActivityIndicator size="large" />
+          <Text>Загрузка...</Text>
+        </View>
+      )}
+      {error && (
+        <View style={styles.loading}>
+          <Text>Произошла ошибка: {error.message}</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -40,5 +67,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#B86C51',
     paddingBottom: 47,
+  },
+  loading: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.5)',
   },
 });
