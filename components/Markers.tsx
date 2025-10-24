@@ -1,7 +1,8 @@
 import { useRouter } from "expo-router";
 import React from 'react';
+import { Alert } from "react-native";
 import { Marker } from "react-native-maps";
-import { MarkerType, MarkersNavigationProps } from "../types";
+import { Marker as MarkerType, MarkersNavigationProps } from "../types";
 
 type MarkersProps = {
     markers: MarkerType[];
@@ -12,10 +13,10 @@ export default function Markers({ markers }: MarkersProps) {
 
     return (
         <>
-            {markers.map((marker, index) => {
+            {markers.map((marker) => {
                 return (
                     <Marker
-                        key={index}
+                        key={marker.id}
                         coordinate={{
                             latitude: marker.latitude,
                             longitude: marker.longitude,
@@ -23,9 +24,13 @@ export default function Markers({ markers }: MarkersProps) {
                         image={require('../assets/images/marker.png')}
 
                         onPress={() => {
+                            if (!marker.id) {
+                                Alert.alert('Ошибка', 'Невозможно открыть детали маркера', [{ text: 'OK' }]);
+                                return;
+                            }
                             try {
                                 const params: MarkersNavigationProps = {
-                                    id: index.toString(),
+                                    id: marker.id.toString(),
                                     latitude: marker.latitude.toString(),
                                     longitude: marker.longitude.toString(),
                                 }
@@ -35,7 +40,7 @@ export default function Markers({ markers }: MarkersProps) {
                                 });
                             } catch (e) {
                                 console.log('Ошибка навигации: ', e);
-                                alert('Не удалось открыть детали маркера');
+                                Alert.alert('Ошибка', 'Не удалось открыть детали маркера', [{ text: 'OK' }]);
                             }
                         }}
                     />
