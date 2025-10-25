@@ -6,6 +6,8 @@ import { initDatabase } from "../database/schema";
 import { Image, Marker } from "../types";
 
 interface DatabaseContextType {
+    markers: Marker[];
+    refreshMarkers: () => Promise<void>;
     addMarker: (marker: Marker) => Promise<void>;
     addImage: (image: Image) => Promise<void>;
     getMarkers: () => Promise<Marker[]>;
@@ -23,6 +25,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const [db, setDb] = useState<SQLite.SQLiteDatabase | null>(null);
     const [error, setError] = useState<Error | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [markers, setMarkers] = useState<Marker[]>([]);
 
     useEffect(() => {
         const init = async () => {
@@ -46,10 +49,22 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         };
     }, []);
 
+    const refreshMarkers = async () => {
+        if (db) {
+            try {
+                await operations.getMarkers().then(setMarkers);
+            } catch (error) {
+                setError(error as Error);
+                throw error;
+            }
+        }
+    };
+
     const addMarker = async (marker: Marker) => {
         if (db) {
             try {
                 await operations.addMarker(marker);
+                await refreshMarkers();
             } catch (error) {
                 setError(error as Error);
             }
@@ -102,6 +117,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (db) {
             try {
                 await operations.deleteMarker(id);
+                await refreshMarkers();
             } catch (error) {
                 setError(error as Error);
             }
@@ -123,6 +139,8 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
 
     const contextValue: DatabaseContextType = {
+        markers,
+        refreshMarkers,
         addMarker,
         addImage,
         getMarkers,
