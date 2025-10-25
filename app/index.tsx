@@ -1,5 +1,4 @@
 import { useDatabase } from '@/contexts/databaseContext';
-import { addMarker } from '@/database/operations';
 import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
@@ -8,24 +7,23 @@ import Markers from "../components/Markers";
 import { Marker } from "../types";
 
 export default function Index() {
-  const { getMarkers, isLoading, error } = useDatabase();
-  const [markers, setMarkers] = useState<Marker[]>([]);
+  const { markers, refreshMarkers, addMarker, isLoading, error } = useDatabase();
   const [isLoadingMarkers, setIsLoadingMarkers] = useState(true);
 
   useFocusEffect(
     useCallback(() => {
       if (!isLoading) {
         setIsLoadingMarkers(true);
-        loadMarkers();
+        refreshMarkers();
         setIsLoadingMarkers(false);
       }
     }, [isLoading]));
 
-  const loadMarkers = async () => {
-    setIsLoadingMarkers(true);
-    await getMarkers().then(setMarkers);
-    setIsLoadingMarkers(false);
-  };
+  // const loadMarkers = async () => {
+  //   setIsLoadingMarkers(true);
+  //   await getMarkers().then(setMarkers);
+  //   setIsLoadingMarkers(false);
+  // };
 
   const onLongMapPress = async (event: any) => {
     const newMarker: Marker = {
@@ -35,7 +33,6 @@ export default function Index() {
 
     try {
       await addMarker(newMarker);
-      await loadMarkers();
     } catch (error) {
       console.error('Ошибка при добавлении маркера:', error);
       Alert.alert('Ошибка', 'Ошибка при добавлении маркера', [{ text: 'OK' }]);
